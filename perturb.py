@@ -2,7 +2,37 @@ import nltk
 from nltk.tokenize import word_tokenize
 import random
 import csv
+import argparse
 nltk.download('punkt')
+
+def parse_args():
+    parser=argparse.ArgumentParser(description="Perturb a given set of prompts")
+    parser.add_argument(
+        "--input_csv",
+        type=str,
+        default="input.csv",
+        help="The input csv file"
+    )
+    parser.add_argument(
+        "--output_csv",
+        type=str,
+        default="output.csv",
+        help="The output csv file"
+    )
+    parser.add_argument(
+        "--prompt_column",
+        type=str,
+        default="Sentences",
+        help="The name of the column which contains the input prompts"
+    )
+    parser.add_argument(
+        "--error_percentage",
+        type=float,
+        default=20,
+        help="The percentage of sentences to perturb"
+    )
+    args=parser.parse_args()
+    return args
 
 class SentencePerturber:
     def __init__(self, input_file_path, output_file_path, column_name, error_percentage):
@@ -77,9 +107,6 @@ class SentencePerturber:
 
 
 if __name__ == "__main__":
-    input_csv_path = 'input.csv'
-    output_csv_path = 'output.csv'
-    column_name = 'Sentences' #Name of the column (in csv) which contains the input prompts to be perturbed
-    perturber = SentencePerturber('input.csv', 'output.csv', 'Sentences', 20)  # Error percentage is 20%
+    args=parse_args()
+    perturber = SentencePerturber(args.input_csv, args.output_csv, args.prompt_column, args.error_percentage)
     perturber.perturb_sentences()
-
