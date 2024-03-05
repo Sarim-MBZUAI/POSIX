@@ -80,6 +80,6 @@ if __name__ == "__main__":
     input_csv_path = 'input.csv'
     output_csv_path = 'output.csv'
     column_name = 'Sentences' #Name of the column (in csv) which contains the input prompts to be perturbed
-    perturber = SentencePerturber('input.csv', 'output.csv', 'Sentences', 20)  # Error percentage is 10%
+    perturber = SentencePerturber('input.csv', 'output.csv', 'Sentences', 20)  # Error percentage is 20%
     perturber.perturb_sentences()
 
