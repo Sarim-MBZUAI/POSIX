@@ -35,11 +35,11 @@ def parse_args():
     return args
 
 class SentencePerturber:
-    def __init__(self, input_file_path, output_file_path, column_name, error_percentage):
+    def __init__(self, input_file_path, output_file_path, column_name, n_error):
         self.input_file = input_file_path
         self.output_file = output_file_path
         self.column_name = column_name
-        self.error_percentage = error_percentage
+        self.n_error = n_error
 
     def perturb_sentences(self):
         
@@ -59,7 +59,7 @@ class SentencePerturber:
 
     def _perturb_sentence(self, sentence):
         tokens = word_tokenize(sentence)
-        num_errors = round(len(tokens) * self.error_percentage / 100)
+        num_errors = self.n_error
         
         #randomly sample tokens to introduce error into
         #random.seed(42)
@@ -76,20 +76,24 @@ class SentencePerturber:
 
     def _introduce_grammar_error(self, token):
         # List of possible error types
-        error_types = ['misspelling', 'letter_swap']
+        error_types = ['addition', 'deletion', 'substituiton', 'juxtraposition']
 
         # Selecting a random error type
         error_type = random.choice(error_types)
     
         # Introducing the selected error
-        if error_type == 'misspelling':
-            return self._introduce_misspelling(token)
-        elif error_type == 'letter_swap':
-            return self._introduce_letter_swap(token)
+        if error_type == 'addition':
+            return self._introduce_addition(token)
+        elif error_type == 'deletion':
+            return self._introduce_deletion(token)
+        elif error_type == 'substituiton':
+            return self._introduce_substitution(token)
+        elif error_type == 'juxtraposition':
+            return self._introduce_juxtraposition(token)
         else:
             return token
     
-    def _introduce_misspelling(self, token):
+    def _introduce_addition(self, token):
         # Introducing grammatical error by adding a random character
         if len(token) > 1:
             index = random.randrange(1, len(token)) 
@@ -97,11 +101,59 @@ class SentencePerturber:
         else:
             return token
 
-    def _introduce_letter_swap(self, token):
-        # Introducing letter swap by randomly swapping adjacent letters
+    def _introduce_deletion(self, token):
+        # Introducing grammatical error by deleting a random letter
+        if len(token) > 2:
+            index = random.randrange(1, len(token)-1) 
+            return token[:index] + token[index+1:]
+        else:
+            return token
+        
+    def _introduce_substitution(self, token):
+        # Introducing substitution by randomly swapping adjacent letters
         if len(token) > 2:
             index = random.randrange(len(token)-1) 
             return token[:index] + token[index + 1] + token[index] + token[index+2:]
+        else:
+            return token
+    
+    def _introduce_juxtraposition(self, token):
+        # Introducing substitution by replacing letters with the adjacent letters according to keyboard
+        keyboard_layout = {
+            'q': 'wsa',
+            'w': 'qasde',
+            'e': 'wsdfr',
+            'r': 'edfgt',
+            't': 'rfghy',
+            'y': 'tghju',
+            'u': 'yhjki',
+            'i': 'ujklo',
+            'o': 'iklp',
+            'p': 'ol',
+            'a': 'qwsxz',
+            's': 'qwedcxza',
+            'd': 'wersfvxc',
+            'f': 'ertdgcvb',
+            'g': 'rtyfhvbn',
+            'h': 'tyugjbcnm',
+            'j': 'yuihknm',
+            'k': 'uioljmn',
+            'l': 'iopkm',
+            'z': 'asx',
+            'x': 'zsdc',
+            'c': 'xdfv',
+            'v': 'cfgb',
+            'b': 'vghn',
+            'n': 'bhjm',
+            'm': 'njk',
+        }
+
+        # Select a random index within the word
+        index = random.randint(0, len(token) - 1)
+
+        # Introduce mistyping error for the selected character
+        if token[index].lower() in keyboard_layout:
+            return token[:index] + random.choice(keyboard_layout[token[index].lower()]) + token[index+1:]
         else:
             return token
 
