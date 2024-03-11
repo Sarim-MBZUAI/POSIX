@@ -26,20 +26,29 @@ def parse_args():
         help="The name of the column which contains the input prompts"
     )
     parser.add_argument(
-        "--error_percentage",
+        "--n_error",
         type=float,
-        default=20,
-        help="The percentage of sentences to perturb"
+        default=1,
+        help="The number of tokens in a sentence to perturb"
     )
+
+    parser.add_argument(
+        "--error_type",
+        type=float,
+        default="mix",
+        help="Choose among add, del, sub, jux, mix"
+    )
+
     args=parser.parse_args()
     return args
 
 class SentencePerturber:
-    def __init__(self, input_file_path, output_file_path, column_name, n_error):
+    def __init__(self, input_file_path, output_file_path, column_name, n_error, error_type):
         self.input_file = input_file_path
         self.output_file = output_file_path
         self.column_name = column_name
         self.n_error = n_error
+        self.error_type = error_type #one among add, del, sub, jux, mix
 
     def perturb_sentences(self):
         
@@ -75,24 +84,38 @@ class SentencePerturber:
         return ' '.join(perturbed_tokens)
 
     def _introduce_grammar_error(self, token):
-        # List of possible error types
-        error_types = ['addition', 'deletion', 'substituiton', 'juxtraposition']
-
-        # Selecting a random error type
-        error_type = random.choice(error_types)
     
         # Introducing the selected error
-        if error_type == 'addition':
+        if self.error_type == 'add':
             return self._introduce_addition(token)
-        elif error_type == 'deletion':
+        elif self.error_type == 'del':
             return self._introduce_deletion(token)
-        elif error_type == 'substituiton':
+        elif self.error_type == 'sub':
             return self._introduce_substitution(token)
-        elif error_type == 'juxtraposition':
+        elif self.error_type == 'jux':
             return self._introduce_juxtraposition(token)
+        elif self.error_type == 'mix': 
+            return self._introduce_mix_error(token)
         else:
             return token
     
+    def _introduce_mix_error(self, token):
+        error_types = ['add', 'del', 'sub', 'jux']
+
+        # Selecting a random error type
+        error = random.choice(error_types)
+
+        if error == 'add':
+            return self._introduce_addition(token)
+        elif error == 'del':
+            return self._introduce_deletion(token)
+        elif error == 'sub':
+            return self._introduce_substitution(token)
+        elif error == 'jux':
+            return self._introduce_juxtraposition(token)
+        else:
+            return token
+
     def _introduce_addition(self, token):
         # Introducing grammatical error by adding a random character
         if len(token) > 1:
@@ -118,7 +141,7 @@ class SentencePerturber:
             return token
     
     def _introduce_juxtraposition(self, token):
-        # Introducing substitution by replacing letters with the adjacent letters according to keyboard
+        # Introducing juxtraposition by replacing letters with the adjacent letters according to keyboard
         keyboard_layout = {
             'q': 'wsa',
             'w': 'qasde',
@@ -160,5 +183,5 @@ class SentencePerturber:
 
 if __name__ == "__main__":
     args=parse_args()
-    perturber = SentencePerturber(args.input_csv, args.output_csv, args.prompt_column, args.error_percentage)
+    perturber = SentencePerturber(args.input_csv, args.output_csv, args.prompt_column, args.n_error, args.error_type)
     perturber.perturb_sentences()
