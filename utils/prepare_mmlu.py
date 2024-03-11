@@ -19,7 +19,7 @@ for subject in all_subjects:
         choices=subject_test_data[i]["choices"]
         target=idx2letter[subject_test_data[i]["answer"]]
         prompt=f"{description}Q:{question}\n(A){choices[0]} (B){choices[1]} (C){choices[2]} (D){choices[3]}\nA: "
-        df.loc[i]=[subject, prompt, target]
+        df.loc[i]=[f"mmlu_{subject}", prompt, target]
     pbar.update(1)
 dataset=datasets.Dataset.from_pandas(df, preserve_index=False)
 dataset.save_to_disk("./../data/mmlu_zeroshot")
