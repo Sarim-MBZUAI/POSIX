@@ -1,16 +1,17 @@
 #######################################################################################################################################
 # PURPOSE: This script is to be used to generate responses of an autoregressive model like Llama-2, Mistral on a given set of prompts.
 # The dataset should be in the 🤗 datasets format.
-# Specifically, the dataset should be a list of dictionaries with three keys "task", "prompt" and "target".
+# Specifically, the dataset should be a list of dictionaries with four keys - "id", "task", "prompt" and "target".
 # [
 #     {
+#         "id": 1,
 #         "task": task_1,
 #         "prompt": prompt_1,
 #         "target": target_1
 #     },
 #     ...
 # ]
-# The output will also be a json file containing list of dictionaries with four keys - "task", "prompt", "target" and "response".
+# The output will be a json file containing list of dictionaries with five keys - "id", "task", "prompt", "target" and "response".
 #######################################################################################################################################
 
 import os
@@ -49,8 +50,8 @@ class DataCollatorForInference:
             attention_mask=attention_mask
         )
 
-def parse_args():   
-    parser=argparse.ArgumentParser(description="Generate responses from a model on given set of prompts")
+def parse_args():
+    parser=argparse.ArgumentParser(description="Generate responses from an autoregressive model on given set of prompts")
 
     parser.add_argument(
         "--load_data_from_disk",
@@ -151,6 +152,7 @@ def main():
     else:
         logger.info(f"Adding special token <|pad|> as pad token")
         tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
+    logger.info(f"The final pad token details: {tokenizer.pad_token_id}, {tokenizer.pad_token}")
     logger.info("Setting padding side to left")
     tokenizer.padding_side="left"
 
@@ -173,12 +175,14 @@ def main():
         return tokenizer(examples["prompt"])
 
     logger.info("Tokenizing the dataset")
+    column_names=raw_dataset.column_names
     with accelerator.main_process_first():
         tokenized_dataset=raw_dataset.map(
             tokenize_prompts,
             batched=True,
-            remove_columns=["task", "prompt", "target"],
-            desc="Tokenizing prompts"
+            num_proc=8,
+            remove_columns=column_names,
+            desc="Tokenizing all prompts"
         )
     
     logger.info("Instantiating Data Collator")
@@ -206,25 +210,26 @@ def main():
     responses=[]
     model.eval()
     for batch in inference_dataloader:
-        N=batch["input_ids"].shape[1]
+        N_prompt=batch["input_ids"].shape[1]
         with torch.no_grad():
-            generated_tokens=accelerator.unwrap_model(model).generate(**batch, max_new_tokens=args.max_new_tokens)
-        generated_tokens=generated_tokens[:, N:]
-        generated_tokens=accelerator.pad_across_processes(generated_tokens, dim=1, pad_index=tokenizer.pad_token_id)
-        generated_tokens=accelerator.gather(generated_tokens)
-        generated_tokens=generated_tokens.cpu().numpy()
-        if isinstance(generated_tokens, tuple):
-            generated_tokens = generated_tokens[0]
-        decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-        responses.extend(decoded_preds)
-        progress_bar.update(1)
+            generated_tokens=accelerator.unwrap_model(model).generate(**batch, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
+            generated_tokens=generated_tokens[:, N_prompt:]
+            generated_tokens=accelerator.pad_across_processes(generated_tokens, dim=1, pad_index=tokenizer.pad_token_id)
+            generated_tokens=accelerator.gather_for_metrics(generated_tokens)
+            generated_tokens=generated_tokens.cpu().numpy()
+            if isinstance(generated_tokens, tuple):
+                generated_tokens = generated_tokens[0]
+            decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+            responses.extend(decoded_preds)
+            progress_bar.update(1)
 
     logger.info("Creating the final dataset")
     final_dataset=[
         {
-            "task": raw_dataset["task"][i],
-            "prompt": raw_dataset["prompt"][i],
-            "target": raw_dataset["target"][i],
+            "id": raw_dataset[i]["id"],
+            "task": raw_dataset[i]["task"],
+            "prompt": raw_dataset[i]["prompt"],
+            "target": raw_dataset[i]["target"],
             "response": responses[i]
         }
         for i in range(len(tokenized_dataset))
