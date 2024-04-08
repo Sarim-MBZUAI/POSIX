@@ -1,7 +1,14 @@
 import nltk
 from nltk.tokenize import word_tokenize
+from nltk.corpus import wordnet
+from nltk import pos_tag
+from nltk.corpus import stopwords
 import random
+import string  
 nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
 
 class NullPerturber:
     def __init__(self):
@@ -129,4 +136,79 @@ class GrammaticalPerturber:
             return token[:index] + random.choice(keyboard_layout[token[index].lower()]) + token[index+1:]
         else:
             return token
+    
+class SynonymPerturber:
+    def __init__(self, n_error):
+        self.n_error = n_error
+        
+        #DT: determiner; NNP: singular proper noun; PRP: personal pronoun; PRP$: possessive pronoun; POS: genitive marker; CD: numeral/cardinal
+        self.invalid_pos_tags = ['DT', 'NNP', 'PRP', 'PRP$', 'POS', 'CD'] 
+        self.stopwords = set(stopwords.words('english'))
+        self.min_word_length = 3
+        self.max_word_length = 15
+
+    def perturb_sentence(self, sentence):
+        tokens = word_tokenize(sentence)
+        valid_tokens = [token for token in tokens if self._is_valid_word(token)]
+        
+        # Create a mapping between indices in original tokens and indices in valid tokens
+        indices_mapping = {i: index for index, i in enumerate(range(len(tokens))) if tokens[i] in valid_tokens}
+        
+        # Select n_error unique indices randomly
+        indices_to_replace = random.sample(indices_mapping.keys(), min(self.n_error, len(valid_tokens)))
+        replaced_count = 0
+        
+        # Replace tokens at selected indices
+        for index in indices_to_replace:
+            tokens[index] = self._replace_word(tokens[index])
+            replaced_count += 1
+            
+            # If all n replacements have been made, break the loop
+            if replaced_count >= self.n_error:
+                break
+        
+        return ' '.join(tokens)
+    
+    def _get_synonym(self, word):
+        synonyms = []
+        for syn in wordnet.synsets(word):
+            for lemma in syn.lemmas():
+                synonyms.append(lemma.name())
+        return synonyms
+
+    def _replace_word(self, word):
+        synonyms = self._get_synonym(word)
+        if synonyms:
+            return random.choice(synonyms)
+        else:
+            return word
+
+    def _is_valid_word(self, word):
+        # Check if word is in stopwords
+        if word.lower() in self.stopwords:
+            return False
+
+        # Check word length: short words might not provide meaningful synonyms, and very long words might be domain-specific or technical terms.
+        if len(word) < self.min_word_length or len(word) > self.max_word_length:
+            return False
+
+        # words with non-alphabetic characters 
+        if not word.isalpha():
+            return False
+        
+        # Potential proper noun
+        if word[0].isupper():
+            return False
+
+        # Check if word is punctuation or number
+        if word in string.punctuation or word.isdigit():
+            return False
+
+        # Check if word's part of speech is in the list of invalid POS tags
+        pos = pos_tag([word])[0][1]
+        if pos in self.invalid_pos_tags:
+            return False
+        
+        return True
+
     
