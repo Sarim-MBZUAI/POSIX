@@ -4,7 +4,7 @@ from nltk.corpus import wordnet
 from nltk import pos_tag
 from nltk.corpus import stopwords
 import random
-import string  
+import string
 nltk.download('punkt')
 nltk.download('wordnet')
 nltk.download('averaged_perceptron_tagger')
@@ -26,8 +26,7 @@ class GrammaticalPerturber:
         tokens = word_tokenize(sentence)
         num_errors = self.n_error
         
-        #randomly sample tokens to introduce error into
-        #random.seed(42)
+        # randomly sample tokens to introduce error into
         N_tokens=len(tokens)
         error_indices = random.sample(range(N_tokens), min(num_errors, N_tokens))
 
@@ -84,7 +83,7 @@ class GrammaticalPerturber:
     def _introduce_deletion(self, token):
         # Introducing grammatical error by deleting a random letter
         if len(token) > 2:
-            index = random.randrange(1, len(token)-1) 
+            index = random.randrange(1, len(token)-1)
             return token[:index] + token[index+1:]
         else:
             return token
@@ -92,13 +91,13 @@ class GrammaticalPerturber:
     def _introduce_substitution(self, token):
         # Introducing substitution by randomly swapping adjacent letters
         if len(token) > 2:
-            index = random.randrange(len(token)-1) 
+            index = random.randrange(len(token)-1)
             return token[:index] + token[index + 1] + token[index] + token[index+2:]
         else:
             return token
     
     def _introduce_juxtaposition(self, token):
-        # Introducing juxtraposition by replacing letters with the adjacent letters according to keyboard
+        # Introducing juxtaposition by replacing letters with the adjacent letters according to keyboard
         keyboard_layout = {
             'q': 'wsa',
             'w': 'qasde',
@@ -141,21 +140,24 @@ class SynonymPerturber:
     def __init__(self, n_error):
         self.n_error = n_error
         
-        #DT: determiner; NNP: singular proper noun; PRP: personal pronoun; PRP$: possessive pronoun; POS: genitive marker; CD: numeral/cardinal
-        self.invalid_pos_tags = ['DT', 'NNP', 'PRP', 'PRP$', 'POS', 'CD'] 
+        # DT: determiner; NNP: singular proper noun; PRP: personal pronoun; PRP$: possessive pronoun; POS: genitive marker; CD: numeral/cardinal
+        self.invalid_pos_tags = ['DT', 'NNP', 'PRP', 'PRP$', 'POS', 'CD']
         self.stopwords = set(stopwords.words('english'))
         self.min_word_length = 3
         self.max_word_length = 15
 
     def perturb_sentence(self, sentence):
         tokens = word_tokenize(sentence)
-        valid_tokens = [token for token in tokens if self._is_valid_word(token)]
-        
-        # Create a mapping between indices in original tokens and indices in valid tokens
-        indices_mapping = {i: index for index, i in enumerate(range(len(tokens))) if tokens[i] in valid_tokens}
+
+        valid_tokens=[]
+        valid_indices=[]
+        for i, token in enumerate(tokens):
+            if self._is_valid_word(token):
+                valid_tokens.append(token)
+                valid_indices.append(i)
         
         # Select n_error unique indices randomly
-        indices_to_replace = random.sample(indices_mapping.keys(), min(self.n_error, len(valid_tokens)))
+        indices_to_replace = random.sample(valid_indices, min(self.n_error, len(valid_tokens)))
         replaced_count = 0
         
         # Replace tokens at selected indices
@@ -210,5 +212,3 @@ class SynonymPerturber:
             return False
         
         return True
-
-    

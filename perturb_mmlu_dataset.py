@@ -1,9 +1,14 @@
+import random
 import argparse
-import pandas as pd
 import datasets
-from datasets import load_dataset
+import pandas as pd
 from tqdm.auto import tqdm
-from sentence_perturber import NullPerturber, GrammaticalPerturber
+from datasets import load_dataset
+from sentence_perturber import (
+    NullPerturber, 
+    GrammaticalPerturber,
+    SynonymPerturber
+)
 
 def parse_args():
     parser=argparse.ArgumentParser(description="Prepare the MMLU datasets with perturbations")
@@ -25,6 +30,12 @@ def parse_args():
         help="The type of error to apply"
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=1,
+        help="The random seed to use for perturbation"
+    )
+    parser.add_argument(
         "--n_shot",
         type=int,
         help="The number of few shot examples (including 0) to consider"
@@ -41,6 +52,9 @@ def parse_args():
 def main():
     args=parse_args()
 
+    # set the random seed
+    random.seed(args.seed)
+
     mmlu=load_dataset("cais/mmlu", "all")
     mmlu_dev=mmlu["dev"]
     mmlu_test=mmlu["test"]
@@ -55,6 +69,10 @@ def main():
         perturber=GrammaticalPerturber(
             n_error=args.n_error, 
             error_type=args.error_type
+        )
+    elif args.perturbation_type=="synonym":
+        perturber=SynonymPerturber(
+            n_error=args.n_error
         )
 
     df=pd.DataFrame(columns=["id", "task", "prompt", "target"])

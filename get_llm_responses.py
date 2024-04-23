@@ -124,7 +124,7 @@ def main():
         datasets.utils.logging.set_verbosity_error()
         transformers.utils.logging.set_verbosity_error()
 
-    # If passed along, set the training seed now
+    # If passed along, set the seed now
     if args.seed is not None:
         logger.info(f"Setting the seed to {args.seed}")
         set_seed(args.seed)
@@ -142,7 +142,6 @@ def main():
     logger.info("Setting padding token")
     if tokenizer.pad_token:
         logger.info(f"Padding token already set to {tokenizer.pad_token}")
-        pass
     elif tokenizer.unk_token:
         logger.info(f"Setting pad token to {tokenizer.unk_token}")
         tokenizer.pad_token = tokenizer.unk_token
