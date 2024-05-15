@@ -29,7 +29,7 @@ def response_prob(prompt, response, tokenizer, model):
     # log_response_probs = torch.log(response_probs)
     # final_prob = 0.0
     # for i in range(n_response_tokens):
-    #     final_prob = final_prob + log_response_probs[0, i, response_tokens[i]]
+    #     final_prob = final_prob + (log_response_probs[0, i, response_tokens[i]].item())
     
     return final_prob
 
