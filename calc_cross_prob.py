@@ -22,7 +22,7 @@ def response_prob(prompt, response, tokenizer, model):
 
     final_prob = 1.0
     for i in range(n_response_tokens):
-        final_prob = final_prob*response_probs[0, i, response_tokens[i]]
+        final_prob = final_prob*(response_probs[0, i, response_tokens[i]].item())
 
     #product of small probabilities may lead to underflow
     #should we do summation of log probs instead?
