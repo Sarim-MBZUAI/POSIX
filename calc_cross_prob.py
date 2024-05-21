@@ -1,4 +1,5 @@
 import torch 
+import math
 
 def response_prob(prompt, response, tokenizer, model):
     input_text = prompt + ' ' + response
@@ -42,3 +43,13 @@ def calc_prob_dist(n1, n2, tokenizer, model):
     """
     dist = 1 - 0.5*(response_prob(n1[0], n1[1], tokenizer, model) + response_prob(n2[0], n2[1], tokenizer, model))
     return dist
+
+def calc_sim(n1, n2, tokenizer, model):
+    """
+    n1 and n2 are two tuples
+    First element of the tuples is the input prompt
+    Second element of the tuple is the output
+    """
+    sim = 0.5*(math.log(response_prob(n1[0], n1[1], tokenizer, model) * response_prob(n2[0], n2[1], tokenizer, model)))
+    #sim will lie between -inf to 0
+    return sim
