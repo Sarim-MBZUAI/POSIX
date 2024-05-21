@@ -7,7 +7,7 @@ def response_prob(prompt, response, tokenizer, model):
     prompt_tokens = tokenizer.encode(prompt)
     n_prompt_tokens = len(prompt_tokens)
 
-    input_ids = tokenizer(input_text, return_tensors="pt").input_ids
+    input_ids = tokenizer(input_text, return_tensors="pt").input_ids.to(model.device)
     
     response_tokens = input_ids[0, n_prompt_tokens:]
     
